@@ -26,6 +26,8 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
             value = float(re.sub(pattern="%|M|,", repl="", string=value)) * pow(10, 6)
         elif value.find("B") != -1:
             value = float(re.sub(pattern="%|B|,", repl="", string=value)) * pow(10, 9)
+        elif value.find("K") != -1:
+            value = float(re.sub(pattern="%|K|,", repl="", string=value)) * pow(10, 3)
         else:
             value = float(re.sub(pattern="%|,", repl="", string=value))
         
@@ -50,6 +52,15 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
 
         # Parse the response
         for res in results:
+            # Extract the asset name
+            asset_name = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-token']/span[contains(@class, 'ds-dex-table-row-base-token-symbol')]/text()").get()
+            
+            # Extract the asset name text
+            asset_name_text = res.xpath(".//div[@class='ds-table-data-cell ds-dex-table-row-col-token']/div[@class='ds-dex-table-row-base-token-name']/span/text()[1]").get()
+            
+            # Extract the asset URL
+            asset_url = "https://dexscreener.com" + res.xpath("./../a[@class='ds-dex-table-row ds-dex-table-row-top']/@href").get()
+
             # Extract the 24-hour gain rank
             asset_gain_rank = int(res.xpath(".//span[@class='ds-dex-table-row-badge-pair-no']/text()[2]").get())
             
@@ -103,6 +114,9 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
 
             # Yield the output dictionary
             output_dict = {
+                "asset_name": asset_name,
+                "asset_name_text": asset_name_text,
+                "asset_url": asset_url,
                 "asset_gain_rank": asset_gain_rank,
                 "asset_network": asset_network,
                 "dex": dex,
