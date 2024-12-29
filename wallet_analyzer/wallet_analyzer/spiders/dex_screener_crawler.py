@@ -39,7 +39,7 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
         # Send a request to the base URL
         yield scrapy.Request(
             url=self.base_url,
-            callback=self.parse,
+            callback=self.parse_top_gainers,
             meta={
                 "zyte_api_automap": {
                     "browserHtml": True,
@@ -47,7 +47,7 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
             }
         )
 
-    def parse(self, response):
+    def parse_top_gainers(self, response):
         # Extract a list of results
         results = response.xpath("//div[@class='ds-dex-table ds-dex-table-top']/a")
 
