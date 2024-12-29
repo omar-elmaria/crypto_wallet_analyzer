@@ -1,6 +1,7 @@
 # Import libraries
 import scrapy
 from inputs import custom_scrapy_settings
+from wallet_analyzer.items import DexScreenerTopGainers
 import re
 
 class DexScreenerCrawlerSpider(scrapy.Spider):
@@ -49,6 +50,9 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
     def parse(self, response):
         # Extract a list of results
         results = response.xpath("//div[@class='ds-dex-table ds-dex-table-top']/a")
+
+        # Create an instance of ProductItem
+        top_gainers_item_obj = DexScreenerTopGainers()
 
         # Parse the response
         for res in results:
@@ -113,24 +117,7 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
             asset_market_cap_in_mil = self.normalize_millions_and_thousands_in_vol_liq_mcap(value=asset_market_cap_in_mil)
 
             # Yield the output dictionary
-            output_dict = {
-                "asset_name": asset_name,
-                "asset_name_text": asset_name_text,
-                "asset_url": asset_url,
-                "asset_gain_rank": asset_gain_rank,
-                "asset_network": asset_network,
-                "dex": dex,
-                "asset_price": asset_price,
-                "asset_age": asset_age,
-                "asset_24_hr_txns": asset_24_hr_txns,
-                "asset_24_hr_volume_in_mil": asset_24_hr_volume_in_mil,
-                "num_makers": num_makers,
-                "asset_price_change_l5m": asset_price_change_l5m,
-                "asset_price_change_l1h": asset_price_change_l1h,
-                "asset_price_change_l6h": asset_price_change_l6h,
-                "asset_price_change_l24h": asset_price_change_l24h,
-                "asset_liquidity_in_mil": asset_liquidity_in_mil,
-                "asset_market_cap_in_mil": asset_market_cap_in_mil
-            }
+            for var in ["asset_name", "asset_name_text", "asset_url", "asset_gain_rank", "asset_network", "dex", "asset_price", "asset_age", "asset_24_hr_txns", "asset_24_hr_volume_in_mil", "num_makers", "asset_price_change_l5m", "asset_price_change_l1h", "asset_price_change_l6h", "asset_price_change_l24h", "asset_liquidity_in_mil", "asset_market_cap_in_mil"]:
+                top_gainers_item_obj[var] = eval(var)
 
-            yield output_dict
+            yield top_gainers_item_obj
