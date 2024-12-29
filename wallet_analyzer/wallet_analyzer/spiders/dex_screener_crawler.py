@@ -12,18 +12,24 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
     def normalize_millions_and_thousands_in_vol_liq_mcap(self, value):
         if value.find("M") != -1:
             value = float(re.sub(pattern="M", repl="", string=value))
+        elif value.find("B") != -1:
+            value = float(re.sub(pattern="B", repl="", string=value)) * 1000
         elif value.find("K") != -1:
             value = float(re.sub(pattern="K", repl="", string=value)) / 1000
         else:
             value = float(value)
+        
+        return value
     
     def normalize_millions_and_billions_in_pct_gains(self, value):
         if value.find("M") != -1:
-            value = float(re.sub(pattern="%|M", repl="", string=value)) * pow(10, 6)
+            value = float(re.sub(pattern="%|M|,", repl="", string=value)) * pow(10, 6)
         elif value.find("B") != -1:
-            value = float(re.sub(pattern="%|B", repl="", string=value)) * pow(10, 9)
+            value = float(re.sub(pattern="%|B|,", repl="", string=value)) * pow(10, 9)
         else:
-            value = float(value)
+            value = float(re.sub(pattern="%|,", repl="", string=value))
+        
+        return value
 
     ## Start scraping
     def start_requests(self):
@@ -88,12 +94,12 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
             asset_price_change_l24h = self.normalize_millions_and_billions_in_pct_gains(value=asset_price_change_l24h)
             
             # Extract the asset's liquidity
-            asset_liquidity = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-liquidity']/text()[2]").get()
-            asset_liquidity = self.normalize_millions_and_thousands_in_vol_liq_mcap(value=asset_liquidity)
+            asset_liquidity_in_mil = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-liquidity']/text()[2]").get()
+            asset_liquidity_in_mil = self.normalize_millions_and_thousands_in_vol_liq_mcap(value=asset_liquidity_in_mil)
             
             # Extract the asset's market cap
-            asset_market_cap = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-market-cap']/text()[2]").get()
-            asset_market_cap = self.normalize_millions_and_thousands_in_vol_liq_mcap(value=asset_market_cap)
+            asset_market_cap_in_mil = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-market-cap']/text()[2]").get()
+            asset_market_cap_in_mil = self.normalize_millions_and_thousands_in_vol_liq_mcap(value=asset_market_cap_in_mil)
 
             # Yield the output dictionary
             output_dict = {
@@ -109,8 +115,8 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
                 "asset_price_change_l1h": asset_price_change_l1h,
                 "asset_price_change_l6h": asset_price_change_l6h,
                 "asset_price_change_l24h": asset_price_change_l24h,
-                "asset_liquidity": asset_liquidity,
-                "asset_market_cap": asset_market_cap
+                "asset_liquidity_in_mil": asset_liquidity_in_mil,
+                "asset_market_cap_in_mil": asset_market_cap_in_mil
             }
 
             yield output_dict
