@@ -117,7 +117,14 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
             asset_market_cap_in_mil = self.normalize_millions_and_thousands_in_vol_liq_mcap(value=asset_market_cap_in_mil)
 
             # Yield the output dictionary
-            for var in ["asset_name", "asset_name_text", "asset_url", "asset_gain_rank", "asset_network", "dex", "asset_price", "asset_age", "asset_24_hr_txns", "asset_24_hr_volume_in_mil", "num_makers", "asset_price_change_l5m", "asset_price_change_l1h", "asset_price_change_l6h", "asset_price_change_l24h", "asset_liquidity_in_mil", "asset_market_cap_in_mil"]:
+            for var in [
+                "asset_name", "asset_name_text", "asset_url",
+                "asset_gain_rank", "asset_network", "dex",
+                "asset_price", "asset_age", "asset_24_hr_txns",
+                "asset_24_hr_volume_in_mil", "num_makers", "asset_price_change_l5m",
+                "asset_price_change_l1h", "asset_price_change_l6h", "asset_price_change_l24h",
+                "asset_liquidity_in_mil", "asset_market_cap_in_mil"
+            ]:
                 top_gainers_item_obj[var] = eval(var)
 
             yield top_gainers_item_obj
