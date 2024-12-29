@@ -63,7 +63,7 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
             asset_name_text = res.xpath(".//div[@class='ds-table-data-cell ds-dex-table-row-col-token']/div[@class='ds-dex-table-row-base-token-name']/span/text()[1]").get()
             
             # Extract the asset URL
-            asset_url = "https://dexscreener.com" + res.xpath("./../a[@class='ds-dex-table-row ds-dex-table-row-top']/@href").get()
+            asset_url = "https://dexscreener.com" + res.xpath("./@href").get()
 
             # Extract the 24-hour gain rank
             asset_gain_rank = int(res.xpath(".//span[@class='ds-dex-table-row-badge-pair-no']/text()[2]").get())
