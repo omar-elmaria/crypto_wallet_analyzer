@@ -8,6 +8,7 @@ load_dotenv()
 # Custom scrapy settings
 custom_scrapy_settings = {
     "FEED_EXPORT_ENCODING": "utf-8", # UTF-8 deals with all types of characters
+    "FEED_EXPORT_TIMEOUT": 180, # Set the timeout parameter to 120 seconds
     "RETRY_TIMES": 3, # Retry failed requests up to 3 times
     "AUTOTHROTTLE_ENABLED": False, # Disables the AutoThrottle extension (recommended to be used if you are not using proxy services)
     "RANDOMIZE_DOWNLOAD_DELAY": False, # Should not be used with proxy services. If enabled, Scrapy will wait a random amount of time (between 0.5 * DOWNLOAD_DELAY and 1.5 * DOWNLOAD_DELAY) while fetching requests from the same website
