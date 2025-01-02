@@ -24,3 +24,16 @@ class DexScreenerTopGainers(scrapy.Item):
     asset_price_change_l24h = scrapy.Field()
     asset_liquidity_in_mil = scrapy.Field()
     asset_market_cap_in_mil = scrapy.Field()
+
+class DexScreenerTopTraders(scrapy.Item):
+    asset_name = scrapy.Field()
+    asset_url = scrapy.Field()
+    trader_bought_usd = scrapy.Field()
+    trader_bought_crypto = scrapy.Field()
+    trader_buy_txns = scrapy.Field()
+    trader_sold_usd = scrapy.Field()
+    trader_sold_crypto = scrapy.Field()
+    trader_sell_txns = scrapy.Field()
+    trader_pnl = scrapy.Field()
+    sol_scan_url = scrapy.Field()
+    wallet_address = scrapy.Field()

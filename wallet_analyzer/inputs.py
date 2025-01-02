@@ -12,7 +12,7 @@ custom_scrapy_settings = {
     "AUTOTHROTTLE_ENABLED": False, # Disables the AutoThrottle extension (recommended to be used if you are not using proxy services)
     "RANDOMIZE_DOWNLOAD_DELAY": False, # Should not be used with proxy services. If enabled, Scrapy will wait a random amount of time (between 0.5 * DOWNLOAD_DELAY and 1.5 * DOWNLOAD_DELAY) while fetching requests from the same website
     "CONCURRENT_REQUESTS": 15, # The maximum number of concurrent (i.e. simultaneous) requests that will be performed by the Scrapy downloader
-    "DOWNLOAD_TIMEOUT": 60, # Setting the timeout parameter to 60 seconds as per the ScraperAPI documentation
+    "DOWNLOAD_TIMEOUT": 120, # Setting the timeout parameter to 60 seconds as per the ScraperAPI documentation
     "ROBOTSTXT_OBEY": False, # Don't obey the Robots.txt rules
     "LOG_LEVEL": "DEBUG", # Set the level of logging to DEBUG
     # Zyte settings

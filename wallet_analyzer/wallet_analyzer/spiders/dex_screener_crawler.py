@@ -1,12 +1,24 @@
 # Import libraries
 import scrapy
 from inputs import custom_scrapy_settings
-from wallet_analyzer.items import DexScreenerTopGainers
+from wallet_analyzer.items import DexScreenerTopGainers, DexScreenerTopTraders
 import re
 
 class DexScreenerCrawlerSpider(scrapy.Spider):
     name = "dex_screener_crawler"
     custom_settings = custom_scrapy_settings # Define the custom settings of the spider
+    custom_settings["FEEDS"] = {
+        'dex_screener_top_gainers.json': {
+            'format': 'json',
+            'overwrite': True,
+            'item_classes': ["wallet_analyzer.items.DexScreenerTopGainers"]
+        },
+        'dex_screener_top_traders.json': {
+            'format': 'json',
+            'overwrite': True,
+            'item_classes': ["wallet_analyzer.items.DexScreenerTopTraders"]
+        }
+    }
     base_url = "https://dexscreener.com/gainers/solana?min24HSells=30&min24HTxns=300&min24HVol=500000&minLiq=250000&minMarketCap=1000000&order=desc&rankBy=priceChangeH24" # Volume > 500k, Liquidity > 250k, MCap > 1M
 
     ## Helper functions
@@ -51,11 +63,11 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
         # Extract a list of results
         results = response.xpath("//div[@class='ds-dex-table ds-dex-table-top']/a")
 
-        # Create an instance of ProductItem
+        # Create an instance of DexScreenerTopGainers
         top_gainers_item_obj = DexScreenerTopGainers()
 
         # Parse the response
-        for res in results:
+        for res in results[0:2]:
             # Extract the asset name
             asset_name = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-token']/span[contains(@class, 'ds-dex-table-row-base-token-symbol')]/text()").get()
             
@@ -128,3 +140,94 @@ class DexScreenerCrawlerSpider(scrapy.Spider):
                 top_gainers_item_obj[var] = eval(var)
 
             yield top_gainers_item_obj
+        
+            # Send a request to the individual asset URL
+            yield scrapy.Request(
+                url=asset_url,
+                callback=self.parse_top_traders,
+                meta={
+                    "zyte_api_automap": {
+                        "browserHtml": True,
+                        "javascript": True,
+                        "actions": [
+                            # Wait for the Top Traders Button
+                            {
+                                "action": "waitForSelector",
+                                "timeout": 10,
+                                "onError": "return",
+                                "selector": {
+                                    "type": "xpath",
+                                    "value": "//button[text() = 'Top Traders']",
+                                    "state": "attached"
+                                }
+                            },
+                            # Click on the Top Traders Button
+                            {
+                                "action": "click",
+                                "delay": 0,
+                                "button": "left",
+                                "onError": "return",
+                                "selector": {
+                                    "type": "xpath",
+                                    "value": "//button[text() = 'Top Traders']",
+                                    "state": "attached"
+                                }
+                            },
+                        ]
+                    },
+
+                    # Meta data
+                    "asset_name": asset_name,
+                    "asset_url": asset_url
+                }
+            )
+
+    def parse_top_traders(self, response):
+        # Create an instance of DexScreenerTopTraders
+        top_traders_item_obj = DexScreenerTopTraders()
+
+        # Extract the top traders list of results
+        top_trader_results = response.xpath("//span[text() = 'bought']/../../following-sibling::div")
+
+        # Extract the meta data
+        asset_name = response.meta["asset_name"]
+        asset_url = response.meta["asset_url"]
+
+        # Parse the response
+        for tr in top_trader_results:
+            # Extract the trader bought amount in USD
+            trader_bought_usd = tr.xpath(".//span[@class='chakra-text custom-rcecxm']/text()").get()
+
+            # Extract the trader bought amount in crypto units
+            trader_bought_crypto = tr.xpath(".//span[@class='chakra-text custom-rcecxm']/following-sibling::span/span[1]/text()").get()
+            
+            # Extract the number of buy TXNs
+            trader_buy_txns = tr.xpath(".//span[@class='chakra-text custom-rcecxm']/following-sibling::span/span[3]/text()").get()
+
+            # Extract the trader sold amount in USD
+            trader_sold_usd = tr.xpath(".//span[@class='chakra-text custom-dv3t8y']/text()").get()
+            
+            # Extract the trader sold amount in crypto units
+            trader_sold_crypto = tr.xpath(".//span[@class='chakra-text custom-dv3t8y']/following-sibling::span/span[1]/text()").get()
+            
+            # Extract the number of sell TXNs
+            trader_sell_txns = tr.xpath(".//span[@class='chakra-text custom-dv3t8y']/following-sibling::span/span[3]/text()").get()
+            
+            # Extract the PnL
+            trader_pnl = tr.xpath(".//div[@class='custom-1e9y0rl']/text()").get()
+
+            # Extract the SOL scan URL
+            sol_scan_url = tr.xpath(".//a[@aria-label='Open in block explorer']/@href").get()
+
+            # Extract the wallet_address
+            wallet_address = re.findall(pattern=r"(?<=account\/).*", string=sol_scan_url)[0]
+
+            # Yield the output dictionary
+            for var in [
+                "asset_name", "asset_url", "trader_bought_usd", "trader_bought_crypto", "trader_buy_txns",
+                "trader_sold_usd", "trader_sold_crypto", "trader_sell_txns",
+                "trader_pnl", "sol_scan_url", "wallet_address"
+            ]:
+                top_traders_item_obj[var] = eval(var)
+
+            yield top_traders_item_obj
