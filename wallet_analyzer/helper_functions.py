@@ -3,7 +3,7 @@ import re
 from typing import Any
 
 ## Helper functions
-def helper_normalize_millions_and_thousands_in_vol_liq_mcap(value: str) -> float:
+def helper_normalize_numbers_in_vol_liq_mcap(value: str) -> float:
     """
     A function to normalize the volume, liquidity, and market capitalization values in millions and thousands.
     """
@@ -20,7 +20,7 @@ def helper_normalize_millions_and_thousands_in_vol_liq_mcap(value: str) -> float
     
     return value
 
-def helper_normalize_millions_and_billions_in_pct_gains(value: str) -> float:
+def helper_normalize_numbers_in_pct_gains(value: str) -> float:
     """
     A function to normalize the percentage gains in the last 5 minutes, 1 hour, 6 hours, and 24 hours.
     """
@@ -32,6 +32,22 @@ def helper_normalize_millions_and_billions_in_pct_gains(value: str) -> float:
         value = float(re.sub(pattern="%|K|,", repl="", string=value)) * pow(10, 3)
     else:
         value = float(re.sub(pattern="%|,", repl="", string=value))
+    
+    return value
+
+def helper_normalize_numbers_in_txn_data(value: str) -> float:
+    """
+    A function to normalize the percentage gains in the last 5 minutes, 1 hour, 6 hours, and 24 hours.
+    """
+    if value is not None:
+        if value.find("B") != -1:
+            value = float(re.sub(pattern=r"\$|B|,", repl="", string=value)) * pow(10, 9)
+        elif value.find("M") != -1:
+            value = float(re.sub(pattern=r"\$|M|,", repl="", string=value)) * pow(10, 6)
+        elif value.find("K") != -1:
+            value = float(re.sub(pattern=r"\$|K|,", repl="", string=value)) * pow(10, 3)
+        else:
+            value = float(re.sub(pattern=r"\$|,", repl="", string=value))
     
     return value
 

@@ -70,7 +70,7 @@ class DexScreenerTopGainersSpider(scrapy.Spider):
             
             # Extract the asset's volume in the last 24 hours
             asset_24_hr_volume_in_mil = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-volume']/text()[2]").get()
-            asset_24_hr_volume_in_mil = helper_normalize_millions_and_thousands_in_vol_liq_mcap(value=asset_24_hr_volume_in_mil)
+            asset_24_hr_volume_in_mil = helper_normalize_numbers_in_vol_liq_mcap(value=asset_24_hr_volume_in_mil)
             
             # Extract the asset's volume in the last 24 hours
             num_makers = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-makers']/text()").get()
@@ -78,27 +78,27 @@ class DexScreenerTopGainersSpider(scrapy.Spider):
             
             # Extract the asset's price change in the last 5 minutes
             asset_price_change_l5m = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-price-change-m5']/span/text()").get()
-            asset_price_change_l5m = helper_normalize_millions_and_billions_in_pct_gains(value=asset_price_change_l5m)
+            asset_price_change_l5m = helper_normalize_numbers_in_pct_gains(value=asset_price_change_l5m)
             
             # Extract the asset's price change in the last hour
             asset_price_change_l1h = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-price-change-h1']/span/text()").get()
-            asset_price_change_l1h = helper_normalize_millions_and_billions_in_pct_gains(value=asset_price_change_l1h)
+            asset_price_change_l1h = helper_normalize_numbers_in_pct_gains(value=asset_price_change_l1h)
             
             # Extract the asset's price change in the last 6 hours
             asset_price_change_l6h = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-price-change-h6']/span/text()").get()
-            asset_price_change_l6h = helper_normalize_millions_and_billions_in_pct_gains(value=asset_price_change_l6h)
+            asset_price_change_l6h = helper_normalize_numbers_in_pct_gains(value=asset_price_change_l6h)
             
             # Extract the asset's price change in the last 24 hours
             asset_price_change_l24h = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-price-change-h24']/span/text()").get()
-            asset_price_change_l24h = helper_normalize_millions_and_billions_in_pct_gains(value=asset_price_change_l24h)
+            asset_price_change_l24h = helper_normalize_numbers_in_pct_gains(value=asset_price_change_l24h)
             
             # Extract the asset's liquidity
             asset_liquidity_in_mil = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-liquidity']/text()[2]").get()
-            asset_liquidity_in_mil = helper_normalize_millions_and_thousands_in_vol_liq_mcap(value=asset_liquidity_in_mil)
+            asset_liquidity_in_mil = helper_normalize_numbers_in_vol_liq_mcap(value=asset_liquidity_in_mil)
             
             # Extract the asset's market cap
             asset_market_cap_in_mil = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-market-cap']/text()[2]").get()
-            asset_market_cap_in_mil = helper_normalize_millions_and_thousands_in_vol_liq_mcap(value=asset_market_cap_in_mil)
+            asset_market_cap_in_mil = helper_normalize_numbers_in_vol_liq_mcap(value=asset_market_cap_in_mil)
 
             # Yield the output dictionary
             output_dict = {
