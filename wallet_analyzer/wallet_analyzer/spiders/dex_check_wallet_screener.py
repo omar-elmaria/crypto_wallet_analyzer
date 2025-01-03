@@ -15,7 +15,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
         }
     }
     base_url = "https://dexcheck.ai/app/wallet-analyzer/{wallet_address}"
-    max_retries = 3
+    max_retries = 1
     spider_actions = {
         "action": "waitForSelector",
         "timeout": 10,
@@ -59,7 +59,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
         df_top_traders["pct_pnl_rank"] = df_top_traders["trader_pct_pnl"].rank(ascending=False)
 
         # Filter for the top 250 traders
-        df_wallets_to_analyze = df_top_traders[df_top_traders["pct_pnl_rank"] <= 250].reset_index(drop=True)
+        df_wallets_to_analyze = df_top_traders[df_top_traders["pct_pnl_rank"] <= pow(10, 6)].reset_index(drop=True)
 
         # Extract the full list of wallets
         full_list_of_wallets = list(df_wallets_to_analyze["wallet_address"].unique())
