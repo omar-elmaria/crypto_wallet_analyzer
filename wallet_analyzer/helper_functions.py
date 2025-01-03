@@ -41,13 +41,13 @@ def helper_normalize_numbers_in_txn_data(value: str) -> float:
     """
     if value is not None:
         if value.find("B") != -1:
-            value = float(re.sub(pattern=r"\$|B|,", repl="", string=value)) * pow(10, 9)
+            value = float(re.sub(pattern=r"\$|B|,|<", repl="", string=value)) * pow(10, 9)
         elif value.find("M") != -1:
-            value = float(re.sub(pattern=r"\$|M|,", repl="", string=value)) * pow(10, 6)
+            value = float(re.sub(pattern=r"\$|M|,|<", repl="", string=value)) * pow(10, 6)
         elif value.find("K") != -1:
-            value = float(re.sub(pattern=r"\$|K|,", repl="", string=value)) * pow(10, 3)
+            value = float(re.sub(pattern=r"\$|K|,|<", repl="", string=value)) * pow(10, 3)
         else:
-            value = float(re.sub(pattern=r"\$|,", repl="", string=value))
+            value = float(re.sub(pattern=r"\$|,|<", repl="", string=value))
     
     return value
 
