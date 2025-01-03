@@ -64,7 +64,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
         # Extract the full list of wallets
         full_list_of_wallets = list(df_wallets_to_analyze["wallet_address"].unique())
         
-        for idx, wl in enumerate(full_list_of_wallets[0:5]):
+        for idx, wl in enumerate(full_list_of_wallets):
             request_counter = 1
             self.logger.info(f"Sending a request to the wallet address: {wl}, which is wallet {idx + 1} out of {len(full_list_of_wallets)}. Try {request_counter} out of {self.max_retries}.")
             yield scrapy.Request(
