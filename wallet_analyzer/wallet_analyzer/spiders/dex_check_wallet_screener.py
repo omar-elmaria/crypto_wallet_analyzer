@@ -64,7 +64,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
         # Extract the full list of wallets
         full_list_of_wallets = list(df_wallets_to_analyze["wallet_address"].unique())
         
-        for idx, wl in enumerate(full_list_of_wallets):
+        for idx, wl in enumerate(full_list_of_wallets[0:5]):
             request_counter = 1
             self.logger.info(f"Sending a request to the wallet address: {wl}, which is wallet {idx + 1} out of {len(full_list_of_wallets)}. Try {request_counter} out of {self.max_retries}.")
             yield scrapy.Request(
@@ -73,6 +73,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
                 meta={
                     "zyte_api_automap": {
                         "browserHtml": True,
+                        "javascript": True,
                         "actions": [self.spider_actions]
                     },
                     "wallet_address": wl,
@@ -94,22 +95,24 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
 
         # Check if the page has been fully loaded
         check_page_load = response.xpath("//button[text()='Gross Profit']/following-sibling::p/text()").get()
-        if check_page_load is None:
+        if check_page_load is None and resp_request_counter < self.max_retries:
             resp_request_counter += 1
-            self.logger.error(f"The page has not been fully loaded for the wallet address: {resp_wallet_address}, which is wallet {resp_wallet_count} out of {resp_tot_num_wallets}. Retrying the request {resp_request_counter} out of {self.max_retries}.")
+            self.logger.error(f"The page has not been fully loaded for the wallet address: {resp_wallet_address}, which is wallet {resp_wallet_count} out of {resp_tot_num_wallets}. Retrying the request {resp_request_counter} out of {self.max_retries}. URL: {response.url}")
             yield scrapy.Request(
                 url=response.url,
                 callback=self.parse_wallet_data,
                 meta={
                     "zyte_api_automap": {
                         "browserHtml": True,
+                        "javascript": True,
                         "actions": [self.spider_actions]
                     },
                     "wallet_address": resp_wallet_address,
                     "request_counter": resp_request_counter,
                     "wallet_count": resp_wallet_count,
                     "tot_num_wallets": resp_tot_num_wallets
-                }
+                },
+                dont_filter=True
             )
         else:
             # Print a status message
