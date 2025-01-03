@@ -15,6 +15,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
         }
     }
     base_url = "https://dexcheck.ai/app/wallet-analyzer/{wallet_address}"
+    max_retries = 3
 
     def start_requests(self):
         # Open the JSON file dex_screener_top_traders.json and convert it to a pandas data frame
@@ -25,6 +26,9 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
         
             # Change the top_gainers to a pandas data frame
             df_raw_data = pd.DataFrame(df_raw_data)
+
+            # Drop all columns that end with _raw
+            df_raw_data = df_raw_data.loc[:, ~df_raw_data.columns.str.endswith('_raw')]
         
         # Change the data types of trader_bought_usd, trader_bought_crypto, trader_buy_txns, trader_sold_usd, trader_sold_crypto, trader_sell_txns, trader_pnl to numeric
         df_raw_data.loc[:, "trader_bought_usd":"trader_pnl"] = df_raw_data.loc[:, "trader_bought_usd":"trader_pnl"].apply(pd.to_numeric).round(2)
@@ -48,7 +52,8 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
         df_wallets_to_analyze = df_top_traders[df_top_traders["pct_pnl_rank"] <= 250].reset_index(drop=True)
         
         for wl in df_wallets_to_analyze["wallet_address"].unique()[0:15]:
-            self.logger.info(f"Sending a request to the wallet address: {wl}")
+            request_counter = 1
+            self.logger.info(f"Sending a request to the wallet address: {wl}. Try {request_counter} out of {self.max_retries}.")
             yield scrapy.Request(
                 url=self.base_url.format(wallet_address=wl),
                 callback=self.parse_wallet_data,
@@ -56,66 +61,85 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
                     "zyte_api_automap": {
                         "browserHtml": True
                     },
-                    "wallet_address": wl
+                    "wallet_address": wl,
+                    "request_counter": request_counter
                 }
             )
     
     def parse_wallet_data(self, response):
-        # Print a status message
-        self.logger.info(f"Processing the stats of the wallet address: {response.meta['wallet_address']}")
-
-        # Extract the wallet's gross profit
+        # Check if the page has been fully loaded
         tot_gross_profit = response.xpath("//button[text()='Gross Profit']/following-sibling::p/text()").get()
+        if tot_gross_profit is None:
+            request_counter = response.meta["request_counter"]
+            request_counter += 1
+            self.logger.error(f"The page has not been fully loaded for the wallet address: {response.meta['wallet_address']}. Retrying the request {request_counter} out of {self.max_retries}.")
+            yield scrapy.Request(
+                url=response.url,
+                callback=self.parse_wallet_data,
+                meta={
+                    "zyte_api_automap": {
+                        "browserHtml": True
+                    },
+                    "wallet_address": response.meta["wallet_address"],
+                    "request_counter": request_counter
+                }
+            )
+        else:
+            # Print a status message
+            self.logger.info(f"Processing the stats of the wallet address: {response.meta['wallet_address']}")
 
-        # Extract the realized gross profit
-        realized_gross_profit = response.xpath("//button[text()='Gross Profit']/../div//p[text()='Realized']/following-sibling::p/span[1]/text()").get()
-        
-        # Extract the unrealized gross profit
-        unrealized_gross_profit = response.xpath("//button[text()='Gross Profit']/../div//p[text()='Unrealized']/following-sibling::p/span[1]/text()").get()
+            # Extract the wallet's gross profit
+            tot_gross_profit = response.xpath("//button[text()='Gross Profit']/following-sibling::p/text()").get()
 
-        # Extract the wallet's total ROI
-        tot_roi = response.xpath("//button[text()='Total ROI']/following-sibling::p/text()[1]").get()
+            # Extract the realized gross profit
+            realized_gross_profit = response.xpath("//button[text()='Gross Profit']/../div//p[text()='Realized']/following-sibling::p/span[1]/text()").get()
+            
+            # Extract the unrealized gross profit
+            unrealized_gross_profit = response.xpath("//button[text()='Gross Profit']/../div//p[text()='Unrealized']/following-sibling::p/span[1]/text()").get()
 
-        # Extract the realized ROI
-        realized_roi = response.xpath("//button[text()='Total ROI']/../div//p[text()='Realized']/following-sibling::p/text()[1]").get()
-        
-        # Extract the unrealized ROI
-        unrealized_roi = response.xpath("//button[text()='Total ROI']/../div//p[text()='Unrealized']/following-sibling::p/text()[1]").get()
+            # Extract the wallet's total ROI
+            tot_roi = response.xpath("//button[text()='Total ROI']/following-sibling::p/text()[1]").get()
 
-        # Extract the win rate
-        win_rate = response.xpath("//button[text()='Win Rate']/following-sibling::div/p/text()").get()
+            # Extract the realized ROI
+            realized_roi = response.xpath("//button[text()='Total ROI']/../div//p[text()='Realized']/following-sibling::p/text()[1]").get()
+            
+            # Extract the unrealized ROI
+            unrealized_roi = response.xpath("//button[text()='Total ROI']/../div//p[text()='Unrealized']/following-sibling::p/text()[1]").get()
 
-        # Extract the number of wins
-        num_wins = response.xpath("//button[text()='Win Rate']/following-sibling::div//p[text()='Win']/following-sibling::p/text()").get()
+            # Extract the win rate
+            win_rate = response.xpath("//button[text()='Win Rate']/following-sibling::div/p/text()").get()
 
-        # Extract the number of losses
-        num_losses = response.xpath("//button[text()='Win Rate']/following-sibling::div//p[text()='Lose']/following-sibling::p/text()").get()
+            # Extract the number of wins
+            num_wins = response.xpath("//button[text()='Win Rate']/following-sibling::div//p[text()='Win']/following-sibling::p/text()").get()
 
-        # Extract the trading volume
-        trading_volume = response.xpath("//button[text()='Trading Volume']/following-sibling::p/text()[2]").get()
+            # Extract the number of losses
+            num_losses = response.xpath("//button[text()='Win Rate']/following-sibling::div//p[text()='Lose']/following-sibling::p/text()").get()
 
-        # Extract the number of trades
-        num_trades = response.xpath("//button[text()='Trades']/following-sibling::p/text()").get()
+            # Extract the trading volume
+            trading_volume = response.xpath("//button[text()='Trading Volume']/following-sibling::p/text()[2]").get()
 
-        # Extract the average trade size
-        avg_trade_size = response.xpath("//button[text()='Avg. Trade Size']/following-sibling::p/span[1]/text()").get()
+            # Extract the number of trades
+            num_trades = response.xpath("//button[text()='Trades']/following-sibling::p/text()").get()
 
-        # Create the output dictionary
-        output_dict = {
-            "wallet_address": response.meta["wallet_address"],
-            "tot_gross_profit": tot_gross_profit,
-            "realized_gross_profit": realized_gross_profit,
-            "unrealized_gross_profit": unrealized_gross_profit,
-            "tot_roi": tot_roi,
-            "realized_roi": realized_roi,
-            "unrealized_roi": unrealized_roi,
-            "win_rate": win_rate,
-            "num_wins": num_wins,
-            "num_losses": num_losses,
-            "trading_volume": trading_volume,
-            "num_trades": num_trades,
-            "avg_trade_size": avg_trade_size
-        }
+            # Extract the average trade size
+            avg_trade_size = response.xpath("//button[text()='Avg. Trade Size']/following-sibling::p/span[1]/text()").get()
 
-        # Yield the output dictionary
-        yield output_dict
+            # Create the output dictionary
+            output_dict = {
+                "wallet_address": response.meta["wallet_address"],
+                "tot_gross_profit": tot_gross_profit,
+                "realized_gross_profit": realized_gross_profit,
+                "unrealized_gross_profit": unrealized_gross_profit,
+                "tot_roi": tot_roi,
+                "realized_roi": realized_roi,
+                "unrealized_roi": unrealized_roi,
+                "win_rate": win_rate,
+                "num_wins": num_wins,
+                "num_losses": num_losses,
+                "trading_volume": trading_volume,
+                "num_trades": num_trades,
+                "avg_trade_size": avg_trade_size
+            }
+
+            # Yield the output dictionary
+            yield output_dict
