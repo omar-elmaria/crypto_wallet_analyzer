@@ -16,6 +16,16 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
     }
     base_url = "https://dexcheck.ai/app/wallet-analyzer/{wallet_address}"
     max_retries = 5
+    spider_actions = {
+        "action": "waitForSelector",
+        "timeout": 10,
+        "onError": "return",
+        "selector": {
+            "type": "xpath",
+            "value": "//button[text()='Gross Profit']/following-sibling::p/text()",
+            "state": "attached"
+        }
+    }
 
     def start_requests(self):
         # Open the JSON file dex_screener_top_traders.json and convert it to a pandas data frame
@@ -63,18 +73,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
                 meta={
                     "zyte_api_automap": {
                         "browserHtml": True,
-                        "actions": [
-                            {
-                                "action": "waitForSelector",
-                                "timeout": 10,
-                                "onError": "return",
-                                "selector": {
-                                    "type": "xpath",
-                                    "value": "//button[text()='Gross Profit']/following-sibling::p/text()",
-                                    "state": "attached"
-                                }
-                            },
-                        ]
+                        "actions": [self.spider_actions]
                     },
                     "wallet_address": wl,
                     "request_counter": request_counter,
@@ -84,43 +83,37 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
             )
     
     def parse_wallet_data(self, response):
+        # Extract the meta data
+        resp_wallet_address = response.meta["wallet_address"]
+        resp_request_counter = response.meta["request_counter"]
+        resp_wallet_count = response.meta["wallet_count"]
+        resp_tot_num_wallets = response.meta["tot_num_wallets"]
+
         # Print the raw logs of the Zyte API
-        self.logger.info(f"Raw logs of the Zyte API for wallet address {response.meta['wallet_address']}, which is wallet {response.meta['wallet_count']} out of {response.meta['tot_num_wallets']} --> {response.raw_api_response['actions']}")
+        self.logger.info(f"Raw logs of the Zyte API for wallet address {resp_wallet_address}, which is wallet {resp_wallet_count} out of {resp_tot_num_wallets} --> {response.raw_api_response['actions']}")
 
         # Check if the page has been fully loaded
         check_page_load = response.xpath("//button[text()='Gross Profit']/following-sibling::p/text()").get()
         if check_page_load is None:
-            request_counter = response.meta["request_counter"]
-            request_counter += 1
-            self.logger.error(f"The page has not been fully loaded for the wallet address: {response.meta['wallet_address']}, which is wallet {response.meta['wallet_count']} out of {response.meta['tot_num_wallets']}. Retrying the request {request_counter} out of {self.max_retries}.")
+            resp_request_counter += 1
+            self.logger.error(f"The page has not been fully loaded for the wallet address: {resp_wallet_address}, which is wallet {resp_wallet_count} out of {resp_tot_num_wallets}. Retrying the request {resp_request_counter} out of {self.max_retries}.")
             yield scrapy.Request(
                 url=response.url,
                 callback=self.parse_wallet_data,
                 meta={
                     "zyte_api_automap": {
                         "browserHtml": True,
-                        "actions": [
-                            {
-                                "action": "waitForSelector",
-                                "timeout": 10,
-                                "onError": "return",
-                                "selector": {
-                                    "type": "xpath",
-                                    "value": "//button[text()='Gross Profit']/following-sibling::p/text()",
-                                    "state": "attached"
-                                }
-                            },
-                        ]
+                        "actions": [self.spider_actions]
                     },
-                    "wallet_address": response.meta["wallet_address"],
-                    "request_counter": request_counter,
-                    "wallet_count": response.meta['wallet_count'],
-                    "tot_num_wallets": response.meta['tot_num_wallets']
+                    "wallet_address": resp_wallet_address,
+                    "request_counter": resp_request_counter,
+                    "wallet_count": resp_wallet_count,
+                    "tot_num_wallets": resp_tot_num_wallets
                 }
             )
         else:
             # Print a status message
-            self.logger.info(f"Processing the stats of the wallet address: {response.meta['wallet_address']}, which is wallet {response.meta['wallet_count']} out of {response.meta['tot_num_wallets']}.")
+            self.logger.info(f"Processing the stats of the wallet address: {resp_wallet_address}, which is wallet {resp_wallet_count} out of {resp_tot_num_wallets}.")
 
             # Extract the wallet's gross profit
             tot_gross_profit = response.xpath("//button[text()='Gross Profit']/following-sibling::p/text()").get()
@@ -160,7 +153,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
 
             # Create the output dictionary
             output_dict = {
-                "wallet_address": response.meta["wallet_address"],
+                "wallet_address": resp_wallet_address,
                 "tot_gross_profit": tot_gross_profit,
                 "realized_gross_profit": realized_gross_profit,
                 "unrealized_gross_profit": unrealized_gross_profit,
