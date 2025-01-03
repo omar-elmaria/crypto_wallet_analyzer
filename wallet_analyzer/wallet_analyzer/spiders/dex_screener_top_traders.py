@@ -94,7 +94,8 @@ class DexScreenerTopTradersSpider(scrapy.Spider):
             trader_bought_crypto = helper_normalize_numbers_in_txn_data(value=trader_bought_crypto)
             
             # Extract the number of buy TXNs
-            trader_buy_txns = helper_treat_none_before_data_type_change(value=tr.xpath(".//span[@class='chakra-text custom-rcecxm']/following-sibling::span/span[3]/text()").get(), data_type="int")
+            trader_buy_txns = helper_normalize_numbers_in_txn_data(value=tr.xpath(".//span[@class='chakra-text custom-rcecxm']/following-sibling::span/span[3]/text()").get())
+            trader_buy_txns = helper_treat_none_before_data_type_change(value=trader_buy_txns, data_type="int")
 
             # Extract the trader sold amount in USD
             trader_sold_usd = tr.xpath(".//span[@class='chakra-text custom-dv3t8y']/text()").get()
@@ -105,10 +106,11 @@ class DexScreenerTopTradersSpider(scrapy.Spider):
             trader_sold_crypto = helper_normalize_numbers_in_txn_data(value=trader_sold_crypto)
             
             # Extract the number of sell TXNs
-            trader_sell_txns = helper_treat_none_before_data_type_change(value=tr.xpath(".//span[@class='chakra-text custom-dv3t8y']/following-sibling::span/span[3]/text()").get(), data_type="int")
+            trader_sell_txns = helper_normalize_numbers_in_txn_data(value=tr.xpath(".//span[@class='chakra-text custom-dv3t8y']/following-sibling::span/span[3]/text()").get())
+            trader_sell_txns = helper_treat_none_before_data_type_change(value=trader_sell_txns, data_type="int")
             
             # Extract the PnL
-            trader_pnl = tr.xpath(".//div[@class='custom-1e9y0rl']/text()").get()
+            trader_pnl = helper_normalize_numbers_in_txn_data(value=tr.xpath(".//div[@class='custom-1e9y0rl']/text()").get())
             trader_pnl = helper_normalize_numbers_in_txn_data(value=trader_pnl)
 
             # Extract the SOL scan URL
