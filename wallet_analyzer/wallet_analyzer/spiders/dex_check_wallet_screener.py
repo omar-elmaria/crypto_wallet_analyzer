@@ -62,7 +62,19 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
                 callback=self.parse_wallet_data,
                 meta={
                     "zyte_api_automap": {
-                        "browserHtml": True
+                        "browserHtml": True,
+                        "actions": [
+                            {
+                                "action": "waitForSelector",
+                                "timeout": 10,
+                                "onError": "return",
+                                "selector": {
+                                    "type": "xpath",
+                                    "value": "//button[text()='Gross Profit']/following-sibling::p/text()",
+                                    "state": "attached"
+                                }
+                            },
+                        ]
                     },
                     "wallet_address": wl,
                     "request_counter": request_counter,
@@ -72,21 +84,38 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
             )
     
     def parse_wallet_data(self, response):
+        # Print the raw logs of the Zyte API
+        self.logger.info(f"Raw logs of the Zyte API for wallet address {response.meta['wallet_address']}, which is wallet {response.meta['wallet_count']} out of {response.meta['tot_num_wallets']} --> {response.raw_api_response['actions']}")
+
         # Check if the page has been fully loaded
-        tot_gross_profit = response.xpath("//button[text()='Gross Profit']/following-sibling::p/text()").get()
-        if tot_gross_profit is None:
+        check_page_load = response.xpath("//button[text()='Gross Profit']/following-sibling::p/text()").get()
+        if check_page_load is None:
             request_counter = response.meta["request_counter"]
             request_counter += 1
-            self.logger.error(f"The page has not been fully loaded for the wallet address: {response.meta['wallet_address']}. Retrying the request {request_counter} out of {self.max_retries}.")
+            self.logger.error(f"The page has not been fully loaded for the wallet address: {response.meta['wallet_address']}, which is wallet {response.meta['wallet_count']} out of {response.meta['tot_num_wallets']}. Retrying the request {request_counter} out of {self.max_retries}.")
             yield scrapy.Request(
                 url=response.url,
                 callback=self.parse_wallet_data,
                 meta={
                     "zyte_api_automap": {
-                        "browserHtml": True
+                        "browserHtml": True,
+                        "actions": [
+                            {
+                                "action": "waitForSelector",
+                                "timeout": 10,
+                                "onError": "return",
+                                "selector": {
+                                    "type": "xpath",
+                                    "value": "//button[text()='Gross Profit']/following-sibling::p/text()",
+                                    "state": "attached"
+                                }
+                            },
+                        ]
                     },
                     "wallet_address": response.meta["wallet_address"],
-                    "request_counter": request_counter
+                    "request_counter": request_counter,
+                    "wallet_count": response.meta['wallet_count'],
+                    "tot_num_wallets": response.meta['tot_num_wallets']
                 }
             )
         else:
@@ -121,7 +150,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
             num_losses = response.xpath("//button[text()='Win Rate']/following-sibling::div//p[text()='Lose']/following-sibling::p/text()").get()
 
             # Extract the trading volume
-            trading_volume = response.xpath("//button[text()='Trading Volume']/following-sibling::p/text()[2]").get()
+            trading_volume = response.xpath("//button[text()='Trading Volume']/following-sibling::p/text()").get()
 
             # Extract the number of trades
             num_trades = response.xpath("//button[text()='Trades']/following-sibling::p/text()").get()
