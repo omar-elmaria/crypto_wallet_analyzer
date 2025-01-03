@@ -15,7 +15,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
         }
     }
     base_url = "https://dexcheck.ai/app/wallet-analyzer/{wallet_address}"
-    max_retries = 5
+    max_retries = 3
     spider_actions = {
         "action": "waitForSelector",
         "timeout": 10,
