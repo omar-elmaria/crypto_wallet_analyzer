@@ -15,7 +15,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
         }
     }
     base_url = "https://dexcheck.ai/app/wallet-analyzer/{wallet_address}"
-    max_retries = 3
+    max_retries = 5
 
     def start_requests(self):
         # Open the JSON file dex_screener_top_traders.json and convert it to a pandas data frame
@@ -50,10 +50,13 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
 
         # Filter for the top 250 traders
         df_wallets_to_analyze = df_top_traders[df_top_traders["pct_pnl_rank"] <= 250].reset_index(drop=True)
+
+        # Extract the full list of wallets
+        full_list_of_wallets = list(df_wallets_to_analyze["wallet_address"].unique())
         
-        for wl in df_wallets_to_analyze["wallet_address"].unique()[0:15]:
+        for idx, wl in enumerate(full_list_of_wallets):
             request_counter = 1
-            self.logger.info(f"Sending a request to the wallet address: {wl}. Try {request_counter} out of {self.max_retries}.")
+            self.logger.info(f"Sending a request to the wallet address: {wl}, which is wallet {idx + 1} out of {len(full_list_of_wallets)}. Try {request_counter} out of {self.max_retries}.")
             yield scrapy.Request(
                 url=self.base_url.format(wallet_address=wl),
                 callback=self.parse_wallet_data,
@@ -62,7 +65,9 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
                         "browserHtml": True
                     },
                     "wallet_address": wl,
-                    "request_counter": request_counter
+                    "request_counter": request_counter,
+                    "wallet_count": idx + 1,
+                    "tot_num_wallets": len(full_list_of_wallets)
                 }
             )
     
@@ -86,7 +91,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
             )
         else:
             # Print a status message
-            self.logger.info(f"Processing the stats of the wallet address: {response.meta['wallet_address']}")
+            self.logger.info(f"Processing the stats of the wallet address: {response.meta['wallet_address']}, which is wallet {response.meta['wallet_count']} out of {response.meta['tot_num_wallets']}.")
 
             # Extract the wallet's gross profit
             tot_gross_profit = response.xpath("//button[text()='Gross Profit']/following-sibling::p/text()").get()
