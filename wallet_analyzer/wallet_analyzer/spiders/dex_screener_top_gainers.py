@@ -61,7 +61,9 @@ class DexScreenerTopGainersSpider(scrapy.Spider):
             
             # Extract the latest price in dollars
             asset_price_raw = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-price']/text()[2]").get()
-            asset_price = helper_treat_none_before_data_type_change(value=asset_price_raw, data_type="float")
+            if asset_price_raw is not None:
+                asset_price = re.sub(pattern=",", repl="", string=asset_price_raw)
+                asset_price = helper_treat_none_before_data_type_change(value=asset_price, data_type="float")
             
             # Extract the asset age in hours
             asset_age = res.xpath("./div[@class='ds-table-data-cell ds-dex-table-row-col-pair-age']/span/text()").get()
