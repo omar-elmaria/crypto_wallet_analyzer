@@ -30,7 +30,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
     def start_requests(self):
         # Open the JSON file dex_screener_top_traders.json and convert it to a pandas data frame
         self.logger.info("Opening the JSON file dex_screener_top_traders.json")
-        with open("dex_screener_top_traders.json", "r") as f:
+        with open("json_files/dex_screener_top_traders.json", "r") as f:
             # Load the JSON file
             df_raw_data = json.load(f)
         
