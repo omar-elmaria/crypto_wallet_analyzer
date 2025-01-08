@@ -21,7 +21,7 @@ class DexScreenerTopTradersSpider(scrapy.Spider):
     def start_requests(self):
         # Open the JSON file dex_screener_top_gainers.json
         self.logger.info("Opening the JSON file dex_screener_top_gainers.json")
-        with open("json_files/dex_screener_top_gainers.json", "r") as f:
+        with open("dex_screener_top_gainers.json", "r") as f:
             # Load the JSON file
             df_top_gainers = json.load(f)
         

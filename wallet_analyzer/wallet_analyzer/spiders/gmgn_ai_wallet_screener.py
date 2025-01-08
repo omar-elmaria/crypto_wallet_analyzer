@@ -4,29 +4,40 @@ from inputs import custom_scrapy_settings
 import json
 import pandas as pd
 
-class DexCheckWalletScreenerSpider(scrapy.Spider):
-    name = "dex_check_wallet_screener"
+class GmgnAiWalletScreenerSpider(scrapy.Spider):
+    name = "gmgn_ai_wallet_screener"
     custom_settings = custom_scrapy_settings.copy() # Define the custom settings of the spider
-    custom_settings["LOG_FILE"] = "dex_check_wallet_screener.log"
+    custom_settings["LOG_FILE"] = "gmgn_ai_wallet_screener.log"
     custom_settings["FEEDS"] = {
-        'dex_check_wallet_screener.json': {
+        'gmgn_ai_wallet_screener.json': {
             'format': 'json',
             'overwrite': True
         }
     }
-    base_url = "https://dexcheck.ai/app/wallet-analyzer/{wallet_address}"
+    base_url = "https://gmgn.ai/sol/address/{wallet_address}"
     max_retries = 1
-    spider_actions = {
-        "action": "waitForSelector",
-        "timeout": 10,
-        "onError": "return",
-        "selector": {
-            "type": "xpath",
-            "value": "//button[text()='Gross Profit']/following-sibling::p/text()",
-            "state": "attached"
+    spider_actions = [
+        {
+            "action": "waitForSelector",
+            "timeout": 10,
+            "onError": "return",
+            "selector": {
+                "type": "xpath",
+                "value": "//div[text() = 'Last 7D PnL']",
+                "state": "attached"
+            }
+        },
+        {
+            "action": "click",
+            "onError": "return",
+            "selector": {
+                "type": "xpath",
+                "value": "//div[text() = '30d']",
+                "state": "attached"
+            }
         }
-    }
-
+    ]
+    
     def start_requests(self):
         # Open the JSON file dex_screener_top_traders.json and convert it to a pandas data frame
         self.logger.info("Opening the JSON file dex_screener_top_traders.json")
@@ -63,7 +74,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
 
         # Extract the full list of wallets
         full_list_of_wallets = list(df_wallets_to_analyze["wallet_address"].unique())
-        
+
         for idx, wl in enumerate(full_list_of_wallets):
             request_counter = 1
             self.logger.info(f"Sending a request to the wallet address: {wl}, which is wallet {idx + 1} out of {len(full_list_of_wallets)}. Try {request_counter} out of {self.max_retries}.")
@@ -74,7 +85,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
                     "zyte_api_automap": {
                         "browserHtml": True,
                         "javascript": True,
-                        "actions": [self.spider_actions]
+                        "actions": self.spider_actions
                     },
                     "wallet_address": wl,
                     "request_counter": request_counter,
@@ -94,7 +105,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
         self.logger.info(f"Raw logs of the Zyte API for wallet address {resp_wallet_address}, which is wallet {resp_wallet_count} out of {resp_tot_num_wallets} --> {response.raw_api_response['actions']}")
 
         # Check if the page has been fully loaded
-        check_page_load = response.xpath("//button[text()='Gross Profit']/following-sibling::p/text()").get()
+        check_page_load = response.xpath("//div[text() = 'Last 7D PnL']").get()
         if check_page_load is None and resp_request_counter < self.max_retries:
             resp_request_counter += 1
             self.logger.error(f"The page has not been fully loaded for the wallet address: {resp_wallet_address}, which is wallet {resp_wallet_count} out of {resp_tot_num_wallets}. Retrying the request {resp_request_counter} out of {self.max_retries}. URL: {response.url}")
@@ -105,7 +116,7 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
                     "zyte_api_automap": {
                         "browserHtml": True,
                         "javascript": True,
-                        "actions": [self.spider_actions]
+                        "actions": self.spider_actions
                     },
                     "wallet_address": resp_wallet_address,
                     "request_counter": resp_request_counter,
@@ -119,56 +130,20 @@ class DexCheckWalletScreenerSpider(scrapy.Spider):
             self.logger.info(f"Processing the stats of the wallet address: {resp_wallet_address}, which is wallet {resp_wallet_count} out of {resp_tot_num_wallets}.")
 
             # Extract the wallet's gross profit
-            tot_gross_profit = response.xpath("//button[text()='Gross Profit']/following-sibling::p/text()").get()
-
-            # Extract the realized gross profit
-            realized_gross_profit = response.xpath("//button[text()='Gross Profit']/../div//p[text()='Realized']/following-sibling::p/span[1]/text()").get()
-            
-            # Extract the unrealized gross profit
-            unrealized_gross_profit = response.xpath("//button[text()='Gross Profit']/../div//p[text()='Unrealized']/following-sibling::p/span[1]/text()").get()
+            tot_gross_profit = response.xpath("//div[text() = 'Total PnL']//following-sibling::div/text()").get()
 
             # Extract the wallet's total ROI
-            tot_roi = response.xpath("//button[text()='Total ROI']/following-sibling::p/text()[1]").get()
-
-            # Extract the realized ROI
-            realized_roi = response.xpath("//button[text()='Total ROI']/../div//p[text()='Realized']/following-sibling::p/text()[1]").get()
-            
-            # Extract the unrealized ROI
-            unrealized_roi = response.xpath("//button[text()='Total ROI']/../div//p[text()='Unrealized']/following-sibling::p/text()[1]").get()
+            tot_roi = response.xpath("//div[text() = 'Last 7D PnL']//following-sibling::div/text()").get()
 
             # Extract the win rate
-            win_rate = response.xpath("//button[text()='Win Rate']/following-sibling::div/p/text()").get()
-
-            # Extract the number of wins
-            num_wins = response.xpath("//button[text()='Win Rate']/following-sibling::div//p[text()='Win']/following-sibling::p/text()").get()
-
-            # Extract the number of losses
-            num_losses = response.xpath("//button[text()='Win Rate']/following-sibling::div//p[text()='Lose']/following-sibling::p/text()").get()
-
-            # Extract the trading volume
-            trading_volume = response.xpath("//button[text()='Trading Volume']/following-sibling::p/text()").get()
-
-            # Extract the number of trades
-            num_trades = response.xpath("//button[text()='Trades']/following-sibling::p/text()").get()
-
-            # Extract the average trade size
-            avg_trade_size = response.xpath("//button[text()='Avg. Trade Size']/following-sibling::p/span[1]/text()").get()
+            win_rate = response.xpath("//div[text() = 'Win Rate']//following-sibling::div/text()").get()
 
             # Create the output dictionary
             output_dict = {
                 "wallet_address": resp_wallet_address,
                 "tot_gross_profit": tot_gross_profit,
-                "realized_gross_profit": realized_gross_profit,
-                "unrealized_gross_profit": unrealized_gross_profit,
                 "tot_roi": tot_roi,
-                "realized_roi": realized_roi,
-                "unrealized_roi": unrealized_roi,
                 "win_rate": win_rate,
-                "num_wins": num_wins,
-                "num_losses": num_losses,
-                "trading_volume": trading_volume,
-                "num_trades": num_trades,
-                "avg_trade_size": avg_trade_size
             }
 
             # Yield the output dictionary
